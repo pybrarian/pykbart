@@ -1,0 +1,9 @@
+try.py
+findTitle.py
+thing.py
+uniqueJournals.py
+.idea/
+*.txt
+*.pdf
+env
+*.pyc
