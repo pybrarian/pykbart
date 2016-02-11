@@ -18,4 +18,4 @@ class KeyNotFound(KeyError):
 
     def __str__(self):
         return ('"{}" is not a valid key. '
-                'Use .list_fields() to see valid keys.\n'.format(self.key))
+                'Use .fields_pp() to see valid keys.\n'.format(self.key))

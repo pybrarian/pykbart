@@ -5,6 +5,7 @@ from __future__ import (absolute_import,
     division, print_function, unicode_literals)
 
 from collections import OrderedDict
+import re
 
 import six
 
@@ -14,7 +15,7 @@ import kbart.exceptions
 class Kbart():
 
     def __init__(self,
-                 data=False,
+                 data=[],
                  provider=None,
                  rp=2,
                  fields_from_header=[]):
@@ -33,7 +34,7 @@ class Kbart():
                 'num_first_issue_online', 'date_last_issue_online',
                 'num_last_vol_online', 'num_last_issue_online', 'title_url',
                 'first_author', 'title_id', 'embargo_info',  'coverage_depth',
-                'coverage notes'
+                'coverage_notes'
             ]
 
             self.kbart_fields_two = [
@@ -59,9 +60,9 @@ class Kbart():
                 ]
             }
 
-            if rp == 2:
+            if int(rp) == 2:
                 self.kbart_fields.extend(self.kbart_fields_two)
-            elif not rp == 1:
+            elif not int(rp) == 1:
                 raise kbart.exceptions.NotValidRP
 
             if provider is None:
@@ -78,17 +79,16 @@ class Kbart():
 
     def __getitem__(self, key):
 
-        if self.kbart_as_ordered_dict[key]:
+        if key in self.kbart_as_ordered_dict:
             return self.kbart_as_ordered_dict[key]
         else:
-            return None
+            raise kbart.exceptions.KeyNotFound(key)
 
     def __setitem__(self, key, value):
         if key in self.kbart_as_ordered_dict:
             self.kbart_as_ordered_dict[key] = value
         else:
             raise kbart.exceptions.KeyNotFound(key)
-
 
     def __repr__(self):
         return ("{}(data={}, provider={}, rp={}, fields_from_header={})\n"
@@ -120,37 +120,73 @@ class Kbart():
         return [self.kbart_as_ordered_dict[x] for x in args
                 if x in self.kbart_as_ordered_dict]
 
-    def list_fields(self):
+    def fields_pp(self):
         return ', '.join(map(str, self.kbart_fields))
 
-    def list_serial_holdings(self):
+    def serial_holdings(self):
+        return self.get_fields('date_first_issue_online',
+                               'num_first_vol_online',
+                               'num_first_issue_online',
+                               'date_last_issue_online',
+                               'num_last_vol_online',
+                               'num_last_issue_online')
 
-        holding_fields = self.get_fields(
-                                'date_first_issue_online',
-                                'num_first_vol_online',
-                                'num_first_issue_online',
-                                'date_last_issue_online',
-                                'num_last_vol_online',
-                                'num_last_issue_online',
-                                'publication_title')
+#    def coverage_length(self):
 
-        this_title = self._format_strings(holding_fields.pop(), suffix=': ')
+
+
+    def serial_holdings_pp(self):
+
+        holding_fields = self.serial_holdings()
 
         if any(holding_fields):
+
             holdings = (
-                '{vol1}{issue1}{date1} - {vol2}{issue2}{date2}'.format(
-                    vol1=self._format_strings(holding_fields[1], 'Volume: '),
-                    issue1=self._format_strings(holding_fields[2], 'Issue: '),
+                '{vol1}{issue1}{date1} - {vol2}{issue2}{date2}{emb}'.format(
+                    vol1=self._format_strings(holding_fields[1], prefix='Volume: '),
+                    issue1=self._format_strings(holding_fields[2], prefix=', Issue: '),
                     date1=self._format_strings(holding_fields[0]),
-                    vol2=self._format_strings(holding_fields[4], 'Volume: '),
-                    issue2=self._format_strings(holding_fields[5], 'Issue: '),
-                    date2=self._format_strings(holding_fields[3])
+                    vol2=self._format_strings(holding_fields[4], prefix='Volume: '),
+                    issue2=self._format_strings(holding_fields[5], prefix=', Issue: '),
+                    date2=self._format_strings(holding_fields[3]),
+                    emb=self._format_strings(self.embargo_pp())
                 )
             )
         else:
-            holdings = self.kbart_as_ordered_dict['embargo_info']
+            holdings = self.embargo_pp()
 
-        return self._format_strings(holdings, this_title, decode=False)
+        return holdings
+
+    def embargo_pp(self):
+
+        embargo_dict = {'d': 'day(s)', 'm': 'month(s)', 'y': 'year(s)',
+                        'r': 'From {} {} ago to present',
+                        'p': 'Up to {} {} ago'}
+
+        if not self.kbart_as_ordered_dict['embargo_info']:
+            return None
+
+        return embargo_dict[self.embargo[0]].format(self.embargo[1],
+                                      embargo_dict[self.embargo[2]])
+
+    @property
+    def title(self):
+        return self.kbart_as_ordered_dict['publication_title']
+
+    @title.setter
+    def title(self, value):
+        self.kbart_as_ordered_dict['publication_title'] = value
+
+    @property
+    def embargo(self):
+        if self.kbart_as_ordered_dict['embargo_info']:
+            embargo_parts = re.match('(R|P)(\d+)(D|M|Y)',
+                                     self.kbart_as_ordered_dict['embargo_info'],
+                                     flags=re.I)
+
+            return [embargo_parts.group(x).lower() for x in range(1, 4)]
+        else:
+            return None
 
     def _format_strings(self, the_string='', prefix='', suffix='', decode=True):
         '''
