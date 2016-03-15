@@ -20,7 +20,7 @@ class KbartReader(six.Iterator):
                  get_fields_from_header=True,
                  file_delimiter='\t'):
 
-        self.reader = csv.reader(file_handle, delimiter='\t')
+        self.reader = csv.reader(file_handle, delimiter=file_delimiter)
         self.provider = provider
         self.rp = rp
         self.fields_from_header = []
@@ -72,12 +72,11 @@ class ReaderManager():
 
     def __enter__(self):
         self.f = open(self.file_name, 'r')
-
         return KbartReader(self.f,
-                           self.provider,
-                           self.rp,
-                           self.get_fields_from_header,
-                           self.file_delimiter)
+                           provider=self.provider,
+                           rp=self.rp,
+                           get_fields_from_header=self.get_fields_from_header,
+                           file_delimiter=self.file_delimiter)
 
     def __exit__(self, type, value, traceback):
         self.f.close()

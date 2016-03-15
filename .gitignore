@@ -7,3 +7,5 @@ uniqueJournals.py
 *.pdf
 env
 *.pyc
+plainCSV.py
+winenv

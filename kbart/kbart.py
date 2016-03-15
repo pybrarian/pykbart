@@ -11,7 +11,7 @@ import six
 
 import kbart.exceptions
 
-
+@six.python_2_unicode_compatible
 class Kbart():
 
     def __init__(self,
@@ -78,7 +78,6 @@ class Kbart():
                                                      fillvalue=''))
 
     def __getitem__(self, key):
-
         if key in self.kbart_as_ordered_dict:
             return self.kbart_as_ordered_dict[key]
         else:
