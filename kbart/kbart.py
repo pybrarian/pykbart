@@ -122,6 +122,7 @@ class Kbart():
     def fields_pp(self):
         return ', '.join(map(str, self.kbart_fields))
 
+    @property
     def serial_holdings(self):
         return self.get_fields('date_first_issue_online',
                                'num_first_vol_online',
@@ -136,7 +137,7 @@ class Kbart():
 
     def serial_holdings_pp(self):
 
-        holding_fields = self.serial_holdings()
+        holding_fields = self.serial_holdings
 
         if any(holding_fields):
 

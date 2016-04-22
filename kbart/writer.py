@@ -5,11 +5,12 @@ from __future__ import (absolute_import,
     division, print_function, unicode_literals)
 
 import csv
+from io import open
 
 class KbartWriter():
 
     def __init__(self, file_handle, fieldnames, delimiter='\t'):
-        
+
         self.file_handle = file_handle
         self.fieldnames = fieldnames
         self.delimiter = delimiter
@@ -36,7 +37,7 @@ class WriterManager():
         self.open_for = open_for
 
     def __enter__(self):
-        self.f = open(self.file_path, self.open_for)
+        self.f = open(self.file_path, self.open_for, encoding='utf-8')
 
         return KbartWriter(self.f, self.fieldnames, self.delimiter)
 

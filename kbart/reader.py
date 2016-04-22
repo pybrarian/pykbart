@@ -5,6 +5,7 @@ from __future__ import (absolute_import,
     division, print_function, unicode_literals)
 
 import csv
+from io import open
 
 import six
 
@@ -71,7 +72,7 @@ class ReaderManager():
         self.file_delimiter = file_delimiter
 
     def __enter__(self):
-        self.f = open(self.file_name, 'r')
+        self.f = open(self.file_name, 'r', encoding='utf-8')
         return KbartReader(self.f,
                            provider=self.provider,
                            rp=self.rp,
