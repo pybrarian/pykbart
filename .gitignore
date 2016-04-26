@@ -11,3 +11,4 @@ env
 winenv
 *.tsv
 *.xls
+compare.py

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 from __future__ import (absolute_import,
     division, print_function, unicode_literals)
 
@@ -158,12 +157,7 @@ class Kbart():
         else:
             return None
 
-    def _format_strings(self, the_string='', prefix='', suffix='', decode=True):
-        '''
-        if decode:
-            the_string = the_string.decode('utf-8')
-        '''
-
+    def _format_strings(self, the_string='', prefix='', suffix=''):
         if the_string:
             return '{0}{1}{2}'.format(prefix, the_string, suffix)
         else:

@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 from __future__ import (absolute_import,
     division, print_function, unicode_literals)
 
-import csv
-from io import open
-
 import six
+import unicodecsv as csv
 
 import kbart.kbart
 
@@ -19,12 +16,12 @@ class Reader(six.Iterator):
                  rp=2,
                  file_delimiter='\t'):
 
-        self.reader = csv.reader(file_handle, delimiter=file_delimiter)
         self.provider = provider
         self.rp = rp
-
         self.fields_from_header = [x for x in six.next(self.reader)]
-
+        self.reader = csv.reader(file_handle,
+                                 delimiter=file_delimiter,
+                                 encoding='utf-8')
 
     def __next__(self):
         return kbart.kbart.Kbart(six.next(self.reader),
@@ -65,7 +62,10 @@ class KbartReader():
         self.file_delimiter = file_delimiter
 
     def __enter__(self):
-        self.f = open(self.file_name, 'r', encoding='utf-8')
+        if six.PY3:
+            self.f = open(self.file_name, 'rt', encoding='utf-8', newline='')
+        else:
+            self.f = open(self.file_name, 'rb')
         return Reader(self.f,
                       provider=self.provider,
                       rp=self.rp,
