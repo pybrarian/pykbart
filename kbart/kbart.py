@@ -9,16 +9,17 @@ import re
 
 import six
 
-import kbart.exceptions
+from kbart.constants import RP1_FIELDS, RP2_FIELDS, PROVIDER_FIELDS
+from kbart.exceptions import NotValidRP, ProviderNotFound, KeyNotFound
 
 @six.python_2_unicode_compatible
 class Kbart():
 
     def __init__(self,
-                 data=[],
+                 data=None,
                  provider=None,
                  rp=2,
-                 fields_from_header=[]):
+                 fields_from_header=None):
 
         self.data = data
         self.provider = provider
@@ -28,49 +29,18 @@ class Kbart():
         if fields_from_header:
             self.kbart_fields = fields_from_header
         else:
-            self.kbart_fields = [
-                'publication_title', 'print_identifier', 'online_identifier',
-                'date_first_issue_online', 'num_first_vol_online',
-                'num_first_issue_online', 'date_last_issue_online',
-                'num_last_vol_online', 'num_last_issue_online', 'title_url',
-                'first_author', 'title_id', 'embargo_info',  'coverage_depth',
-                'coverage_notes'
-            ]
-
-            self.kbart_fields_two = [
-                'notes', 'publisher_name', 'publication_type',
-                'date_monograph_published_print',
-                'date_monograph_published_online', 'monograph_volume',
-                'monograph_edition', 'first_editor',
-                'parent_publication_title_id', 'preceding_publication_title_id',
-                'access_type'
-            ]
-
-            self.provider_fields = {
-                'oclc': [
-                    'publisher_name', 'location', 'title_notes',
-                    'staff_notes', 'vendor_id', 'oclc_collection_name',
-                    'oclc_collection_id', 'oclc_entry_id', 'oclc_linkscheme',
-                    'oclc_number', 'ACTION'
-                ],
-                'gale': [
-                    'series_title', 'series_number', 'description', 'audience',
-                    'frequency', 'format', 'referred_peer_re-viewed', 'country',
-                    'language', 'primary_subject'
-                ]
-            }
+            self.kbart_fields = list(RP1_FIELDS)
 
             if int(rp) == 2:
-                self.kbart_fields.extend(self.kbart_fields_two)
+                self.kbart_fields.extend(RP2_FIELDS)
             elif not int(rp) == 1:
-                raise kbart.exceptions.NotValidRP
+                raise NotValidRP
 
-            if provider is None:
-                pass
-            elif provider in self.provider_fields:
-                self.kbart_fields.extend(self.provider_fields[provider])
-            else:
-                raise kbart.exceptions.ProviderNotFound
+            if provider is not None:
+                try:
+                    self.kbart_fields.extend(PROVIDER_FIELDS[provider])
+                except KeyError:
+                    raise ProviderNotFound
 
         self.kbart_as_ordered_dict = OrderedDict(six.moves.zip_longest(
                                                      self.kbart_fields,
@@ -81,13 +51,13 @@ class Kbart():
         if key in self.kbart_as_ordered_dict:
             return self.kbart_as_ordered_dict[key]
         else:
-            raise kbart.exceptions.KeyNotFound(key)
+            raise KeyNotFound(key)
 
     def __setitem__(self, key, value):
         if key in self.kbart_as_ordered_dict:
             self.kbart_as_ordered_dict[key] = value
         else:
-            raise kbart.exceptions.KeyNotFound(key)
+            raise KeyNotFound(key)
 
     def __repr__(self):
         return ("{}(data={}, provider={}, rp={}, fields_from_header={})\n"

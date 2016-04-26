@@ -11,25 +11,20 @@ import six
 
 import kbart.kbart
 
-class KbartReader(six.Iterator):
+class Reader(six.Iterator):
 
     def __init__(self,
                  file_handle,
                  provider=None,
                  rp=2,
-                 has_header=True,
-                 get_fields_from_header=True,
                  file_delimiter='\t'):
 
         self.reader = csv.reader(file_handle, delimiter=file_delimiter)
         self.provider = provider
         self.rp = rp
-        self.fields_from_header = []
 
-        if get_fields_from_header:
-            self.fields_from_header = [x for x in six.next(self.reader)]
-        elif has_header:
-            six.next(self.reader)
+        self.fields_from_header = [x for x in six.next(self.reader)]
+
 
     def __next__(self):
         return kbart.kbart.Kbart(six.next(self.reader),
@@ -57,27 +52,24 @@ class KbartReader(six.Iterator):
 
 
 
-class ReaderManager():
+class KbartReader():
 
     def __init__(self,
                  file_name,
                  provider=None,
                  rp=2,
-                 get_fields_from_header=True,
                  file_delimiter='\t'):
         self.file_name = file_name
         self.provider=provider
         self.rp = rp
-        self.get_fields_from_header = get_fields_from_header
         self.file_delimiter = file_delimiter
 
     def __enter__(self):
         self.f = open(self.file_name, 'r', encoding='utf-8')
-        return KbartReader(self.f,
-                           provider=self.provider,
-                           rp=self.rp,
-                           get_fields_from_header=self.get_fields_from_header,
-                           file_delimiter=self.file_delimiter)
+        return Reader(self.f,
+                      provider=self.provider,
+                      rp=self.rp,
+                      file_delimiter=self.file_delimiter)
 
     def __exit__(self, type, value, traceback):
         self.f.close()
