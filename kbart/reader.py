@@ -1,75 +1,74 @@
 #!/usr/bin/env python
+"""Read a csv of kbart records."""
 # coding: utf-8
-from __future__ import (absolute_import,
-    division, print_function, unicode_literals)
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
 
 import six
 import unicodecsv as csv
 
 import kbart.kbart
 
+
 class Reader(six.Iterator):
+    """"Class to read a file of KBART records."""
 
     def __init__(self,
                  file_handle,
                  provider=None,
                  rp=2,
-                 file_delimiter='\t'):
-
+                 delimiter='\t'):
+        """Get csv.reader object from unicodecsv and get the header fields."""
         self.provider = provider
         self.rp = rp
-        self.fields_from_header = [x for x in six.next(self.reader)]
+        self.delimiter = delimiter
         self.reader = csv.reader(file_handle,
-                                 delimiter=file_delimiter,
+                                 delimiter=self.delimiter,
                                  encoding='utf-8')
+        self.fields_from_header = [x for x in six.next(self.reader)]
 
     def __next__(self):
+        """Return a Kbart instance from each csv line."""
         return kbart.kbart.Kbart(six.next(self.reader),
                                  provider=self.provider,
                                  rp=self.rp,
-                                 fields_from_header=self.fields_from_header)
+                                 fields=self.fields_from_header)
 
     def __iter__(self):
         return self
 
     def fields_pp(self):
-        if self.fields_from_header:
-            return ', '.join(map(str, self.fields_from_header))
-        else:
-            kbart_object = kbart.kbart.Kbart(provider=self.provider, rp=self.rp)
-            return kbart_object.list_fields()
+        """Print a formatted representation of fields. Useful for debugging."""
+        return ', '.join(map(str, self.fields_from_header))
 
     @property
     def fields(self):
-        if self.fields_from_header:
-            return self.fields_from_header
-        else:
-            kbart_object = kbart.kbart.Kbart(provider=self.provider, rp=self.rp)
-            return kbart_object.kbart_fields
-
+        """Return field names of current kbart file."""
+        return self.fields_from_header
 
 
 class KbartReader():
+    """Context manager for Reader classes."""
 
     def __init__(self,
                  file_name,
                  provider=None,
                  rp=2,
-                 file_delimiter='\t'):
+                 delimiter='\t'):
+        """Only set variables to be used on entrance."""
         self.file_name = file_name
-        self.provider=provider
+        self.provider = provider
         self.rp = rp
-        self.file_delimiter = file_delimiter
+        self.delimiter = delimiter
 
     def __enter__(self):
-        if six.PY3:
-            self.f = open(self.file_name, 'rt', encoding='utf-8', newline='')
-        else:
-            self.f = open(self.file_name, 'rb')
+        """Open all in binary mode when using unicodecsv."""
+        self.f = open(self.file_name, 'rb')
         return Reader(self.f,
                       provider=self.provider,
                       rp=self.rp,
-                      file_delimiter=self.file_delimiter)
+                      delimiter=self.delimiter)
 
     def __exit__(self, type, value, traceback):
+        """Close file when leaving with scope."""
         self.f.close()

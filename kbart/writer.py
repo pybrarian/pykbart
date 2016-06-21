@@ -1,46 +1,44 @@
 #!/usr/bin/env python
+"""Class and context manager for writing Kbart class to csv file."""
 # coding: utf-8
 
-from __future__ import (absolute_import,
-    division, print_function, unicode_literals)
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
 
-import csv
-from io import open
+import unicodecsv as csv
+
+
+class Writer():
+    """Write a Kbart class to a csv file."""
+
+    def __init__(self, file_handle, delimiter='\t'):
+        """Set variables and open the csv writer using utf-8 encoding."""
+        self.file_handle = file_handle
+        self.delimiter = delimiter
+        self.writer = csv.writer(file_handle,
+                                 delimiter=self.delimiter,
+                                 encoding='utf-8')
+
+    def writerow(self, kbart_record):
+        """Write csv row from a Kbart record."""
+        self.writer.writerow(kbart_record._kbart_data.values())
+
+    def write_header(self, kbart_record):
+        """Write the header."""
+        self.writer.writerow(kbart_record.fields)
+
 
 class KbartWriter():
+    """Context manager for Writer class."""
 
-    def __init__(self, file_handle, fieldnames, delimiter='\t'):
-
-        self.file_handle = file_handle
-        self.fieldnames = fieldnames
-        self.delimiter = delimiter
-
-        self.writer = csv.DictWriter(file_handle,
-                                     fieldnames=self.fieldnames,
-                                     delimiter=self.delimiter)
-
-        self.writer.writeheader()
-
-    def write(self, kbart_record):
-
-        try:
-            self.writer.writerow(kbart_record.kbart_as_ordered_dict)
-        except AttributeError:
-            self.writer.writerow(kbart_record)
-
-class WriterManager():
-
-    def __init__(self, file_path, fieldnames, open_for='w', delimiter='\t'):
+    def __init__(self, file_path, delimiter='\t'):
+        """Just variables."""
         self.file_path = file_path
-        self.fieldnames = fieldnames
         self.delimiter = delimiter
-        self.open_for = open_for
 
     def __enter__(self):
-        self.f = open(self.file_path, self.open_for, encoding='utf-8')
-
-        return KbartWriter(self.f, self.fieldnames, self.delimiter)
+        self.f = open(self.file_name, 'wb')
+        return Writer(self.f, self.delimiter)
 
     def __exit__(self, type, value, traceback):
         self.f.close()
-
