@@ -29,3 +29,9 @@ PROVIDER_FIELDS = {
         'language', 'primary_subject'
     )
 }
+
+EMBARGO_CODES_TO_STRINGS = {
+    'd': 'day(s)', 'm': 'month(s)', 'y': 'year(s)',
+    'r': 'From {} {} ago to present',
+    'p': 'Up to {} {} ago'
+}

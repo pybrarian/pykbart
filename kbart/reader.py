@@ -47,7 +47,7 @@ class Reader(six.Iterator):
         return self.fields_from_header
 
 
-class KbartReader():
+class KbartReader:
     """Context manager for Reader classes."""
 
     def __init__(self,

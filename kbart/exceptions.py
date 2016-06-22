@@ -17,3 +17,8 @@ class UnknownEmbargoFormat(Exception):
     def __str__(self):
         return ('Embargo code not recognized. '
                 'Embargo should be formatted as R1Y or P1Y\n')
+
+
+class IncompleteDateInformation(Exception):
+    def __str__(self):
+        return 'Insufficient date information to calculate coverage length.'
