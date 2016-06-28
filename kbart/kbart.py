@@ -61,23 +61,18 @@ class Kbart:
         self._kbart_data = OrderedDict(six.moves.zip_longest(self.fields,
                                                              self.data,
                                                              fillvalue=''))
-        # Ugly, but necessary to ensure blank fields rather than no fields if
-        # user is building up a KBART instance rather than reading in data
-        holding_fields = list(self._kbart_data.values())[3:9]
+        # Ugly, but necessary to use values rather than data  to ensure blank
+        # fields rather than no fields if user is building up a KBART instance
+        # rather than reading in data
+        holding_fields = self._kbart_data.values()[3:9]
         self.holdings = Holdings(holding_fields)
         self.embargo = Embargo(self._kbart_data['embargo_info'])
 
     def __getitem__(self, key):
-        if key in self._kbart_data:
-            return self._kbart_data[key]
-        else:
-            raise KeyError
+        return self._kbart_data[key]
 
     def __setitem__(self, key, value):
-        if key in self._kbart_data:
-            self._kbart_data[key] = value
-        else:
-            raise KeyError
+        self._kbart_data[key] = value
 
     def __repr__(self):
         return ("{0}(data={1}, provider={2}, rp={3}, fields={4})\n"
@@ -181,7 +176,7 @@ class Holdings:
         """
         Args:
             holding_fields: the slice of the KBART that has holdings info.
-                [first_date, first_vol, first_issue, last_date, last_vol, last_issue]
+        [first_date, first_vol, first_issue, last_date, last_vol, last_issue]
         """
         self.holdings = holding_fields
         self.first_holding = self.holdings[:3]
