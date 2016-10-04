@@ -1,5 +1,13 @@
 #!/usr/bin/env python
-"""Represent a Kbart in Python."""
+"""
+This code represents and allows for manipulating a KBART file (the format
+that controls all of our electronic holdings) programmatically. I have employed
+this to do a variety of tasks, including but limited to checking our holdings
+against vendor lists, taking count of our holdings, batch-updating local
+collections, and routinely making backup copies of local collections.
+This has made all of these tasks considerably more efficient than they
+might otherwise be.
+"""
 
 # coding: utf-8
 
@@ -116,17 +124,6 @@ class Kbart:
     def title(self, value):
         self._kbart_data['publication_title'] = value
 
-    @property
-    def embargo(self):
-        return str(self.embargo)
-
-    @embargo.setter
-    def embargo(self, value):
-        if self.embargo_pattern.match(value):
-            self._kbart_data['embargo_info'] = value
-        else:
-            raise UnknownEmbargoFormat
-
     def embargo_pp(self):
         return self.embargo.pretty_print()
 
@@ -184,9 +181,6 @@ class Holdings:
 
     def __repr__(self):
         return '{0}({1})'.format(self.__class__.__name__, self.holdings)
-
-    def __str__(self):
-        pass
 
     def pretty_print(self):
         if any(self.holdings):
