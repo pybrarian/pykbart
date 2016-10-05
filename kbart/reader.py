@@ -8,10 +8,7 @@ import six
 
 from kbart.kbart import Kbart
 
-if six.PY2:
-    import unicodecsv as csv
-else:
-    import csv
+import unicodecsv as csv
 
 
 def kbart_reader(file_handle, provider=None, rp=2, delimiter='\t'):

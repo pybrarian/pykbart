@@ -1,20 +1,8 @@
 #!/usr/bin/env python
-"""
-This code represents and allows for manipulating a KBART file (the format
-that controls all of our electronic holdings) programmatically. I have employed
-this to do a variety of tasks, including but limited to checking our holdings
-against vendor lists, taking count of our holdings, batch-updating local
-collections, and routinely making backup copies of local collections.
-This has made all of these tasks considerably more efficient than they
-might otherwise be.
-"""
-
 # coding: utf-8
 
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
-
-
 from collections import OrderedDict
 import datetime
 import re
@@ -69,12 +57,6 @@ class Kbart:
         self._kbart_data = OrderedDict(six.moves.zip_longest(self.fields,
                                                              self.data,
                                                              fillvalue=''))
-        # Ugly, but necessary to use values rather than data  to ensure blank
-        # fields rather than no fields if user is building up a KBART instance
-        # rather than reading in data
-        holding_fields = self._kbart_data.values()[3:9]
-        self.holdings = Holdings(holding_fields)
-        self.embargo = Embargo(self._kbart_data['embargo_info'])
 
     def __getitem__(self, key):
         return self._kbart_data[key]
@@ -110,11 +92,11 @@ class Kbart:
                 if x in self._kbart_data]
 
     @property
-    def serial_holdings(self):
-        return self.holdings.holdings
+    def holdings(self):
+        return list(self._kbart_data.values())[3:9]
 
     def serial_holdings_pp(self):
-        return self.holdings.pretty_print()
+        return Holdings.pretty_print(self.holdings)
 
     @property
     def title(self):
@@ -124,8 +106,12 @@ class Kbart:
     def title(self, value):
         self._kbart_data['publication_title'] = value
 
+    @property
+    def embargo(self):
+        return self._kbart_data['embargo_info']
+
     def embargo_pp(self):
-        return self.embargo.pretty_print()
+        return Embargo.pretty_print(self.embargo)
 
     @property
     def print_id(self):
@@ -168,34 +154,20 @@ class Kbart:
 
 
 class Holdings:
-
-    def __init__(self, holding_fields):
-        """
-        Args:
-            holding_fields: the slice of the KBART that has holdings info.
-        [first_date, first_vol, first_issue, last_date, last_vol, last_issue]
-        """
-        self.holdings = holding_fields
-        self.first_holding = self.holdings[:3]
-        self.last_holding = self.holdings[3:]
-
-    def __repr__(self):
-        return '{0}({1})'.format(self.__class__.__name__, self.holdings)
-
-    def pretty_print(self):
-        if any(self.holdings):
-            first_holding = _create_holdings_string(self.first_holding)
-            last_holding = _create_holdings_string(self.last_holding)
-
+    @staticmethod
+    def pretty_print(holdings):
+        if any(holdings):
+            first, last = holdings[:3], holdings[3:]
+            first_holding = Holdings._create_holdings_string(first)
+            last_holding = Holdings._create_holdings_string(last)
             if not last_holding:
                 last_holding = 'present'
-
             return '{0} - {1}'.format(first_holding, last_holding)
         else:
             return 'No holdings present'
 
-    @property
-    def length_of_coverage(self):
+    @staticmethod
+    def length_of_coverage(holdings):
         """
         If we have 2 dates, use them to determine length. Else assume holdings
         are 'to present', formulate a date and use that. If that doesn't work
@@ -207,70 +179,59 @@ class Holdings:
         Exceptions:
             IncompleteDateInformation: if no range can be produced
         """
+        first_year, last_year = holdings[0], holdings[3]
         try:
-            coverage_length = int(self.holdings[3]) - int(self.holdings[0])
+            coverage_length = int(last_year) - int(first_year)
         except ValueError:
             try:
                 this_year = datetime.datetime.now().year
-                coverage_length = int(this_year) - int(self.holdings[0])
+                coverage_length = int(this_year) - int(first_year)
             except ValueError:
                 raise IncompleteDateInformation
 
         return coverage_length
 
+    @staticmethod
+    def _create_holdings_string(holdings):
+        """
+        Format a section of KBART holdings into a human-readable string.
+        Args:
+            holdings: 3 element list; [date, vol, issue] following KBART order
+
+        Returns:
+            Human readable string of the holding period
+
+        """
+        holdings[1] = _format_strings(holdings[1], prefix='Vol: ')
+        holdings[2] = _format_strings(holdings[2], prefix='Issue: ')
+        return ', '.join([x for x in holdings if x])
+
 
 class Embargo:
+    pattern = re.compile('(?P<type>R|P)(?P<length>\d+)(?P<unit>D|M|Y)')
 
-    def __init__(self, embargo):
-        self.pattern = re.compile(
-            '(?P<type>R|P)(?P<length>\d+)(?P<unit>D|M|Y)',
-            re.I
-        )
-        self.embargo = embargo
-        self.embargo_parts = self._embargo_as_dict()
-
-    def __str__(self):
-        return str(self.embargo)
-
-    def __repr__(self):
-        return '{0}({1})'.format(self.__class__.__name__, self.embargo)
-
-    def pretty_print(self):
+    @staticmethod
+    def pretty_print(embargo):
+        embargo_parts = Embargo._embargo_as_dict(embargo)
         try:
-            type_of_embargo = EMBARGO_CODES_TO_STRINGS[self.embargo_parts['type']]
-            length = self.embargo_parts['length']
-            units = EMBARGO_CODES_TO_STRINGS[self.embargo_parts['unit']]
-
+            type_of_embargo = EMBARGO_CODES_TO_STRINGS[embargo_parts['type']]
+            length = embargo_parts['length']
+            units = EMBARGO_CODES_TO_STRINGS[embargo_parts['unit']]
             return type_of_embargo.format(length, units)
-        except KeyError:
+        except KeyError as e:
             return ''
 
-    def _embargo_as_dict(self):
-        if self.embargo:
+    @staticmethod
+    def _embargo_as_dict(embargo):
+        if embargo:
             try:
-                embargo_parts = self.pattern.match(self.embargo)
+                embargo_parts = Embargo.pattern.match(embargo)
                 embargo_dict = embargo_parts.groupdict()
             except AttributeError:
                 raise UnknownEmbargoFormat
         else:
             embargo_dict = {}
-
         return embargo_dict
-
-
-def _create_holdings_string(holdings):
-    """
-    Format a section of KBART holdings into a human-readable string.
-    Args:
-        holdings: 3 element list; [date, vol, issue] following KBART order
-
-    Returns:
-        Human readable string of the holding period
-
-    """
-    holdings[1] = _format_strings(holdings[1], prefix='Vol: ')
-    holdings[2] = _format_strings(holdings[2], prefix='Issue: ')
-    return ', '.join([x for x in holdings if x])
 
 
 def _format_strings(the_string='', prefix='', suffix=''):

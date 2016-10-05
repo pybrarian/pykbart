@@ -31,7 +31,7 @@ PROVIDER_FIELDS = {
 }
 
 EMBARGO_CODES_TO_STRINGS = {
-    'd': 'day(s)', 'm': 'month(s)', 'y': 'year(s)',
-    'r': 'From {} {} ago to present',
-    'p': 'Up to {} {} ago'
+    'D': 'day(s)', 'M': 'month(s)', 'Y': 'year(s)',
+    'R': 'From {} {} ago to present',
+    'P': 'Up to {} {} ago'
 }
