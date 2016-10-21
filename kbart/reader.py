@@ -11,17 +11,17 @@ from kbart.kbart import Kbart
 import unicodecsv as csv
 
 
-def kbart_reader(file_handle, provider=None, rp=2, delimiter='\t'):
+def kbart_reader(file_handle, delimiter='\t'):
     reader = csv.reader(file_handle, delimiter=delimiter, encoding='utf-8')
     field_names = list(six.next(reader))
     for row in reader:
-        yield Kbart(row, provider=provider, rp=rp, fields=field_names)
+        yield Kbart(row, fields=field_names)
 
 
 @contextlib.contextmanager
-def KbartReader(file_path, provider=None, rp=2, delimiter='\t'):
+def KbartReader(file_path, delimiter='\t'):
     f = open(file_path, 'rb')
     try:
-        yield kbart_reader(f, provider=provider, rp=rp, delimiter=delimiter)
+        yield kbart_reader(f, delimiter=delimiter)
     finally:
         f.close()

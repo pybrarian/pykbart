@@ -95,7 +95,7 @@ class Kbart:
     def holdings(self):
         return list(self._kbart_data.values())[3:9]
 
-    def serial_holdings_pp(self):
+    def holdings_pp(self):
         return Holdings.pretty_print(self.holdings)
 
     @property
