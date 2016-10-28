@@ -6,7 +6,7 @@ import contextlib
 
 import six
 
-from kbart.kbart import Kbart
+from pykbart.kbart import Kbart
 
 import unicodecsv as csv
 

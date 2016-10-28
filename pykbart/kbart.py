@@ -9,9 +9,9 @@ import re
 
 import six
 
-from kbart.constants import (RP1_FIELDS, RP2_FIELDS, PROVIDER_FIELDS,
+from pykbart.constants import (RP1_FIELDS, RP2_FIELDS, PROVIDER_FIELDS,
                              EMBARGO_CODES_TO_STRINGS)
-from kbart.exceptions import (InvalidRP, ProviderNotFound,
+from pykbart.exceptions import (InvalidRP, ProviderNotFound,
                               UnknownEmbargoFormat, IncompleteDateInformation)
 
 
@@ -116,6 +116,13 @@ class Kbart(MutableMapping):
     @property
     def embargo(self):
         return self._kbart_data['embargo_info']
+
+    @embargo.setter
+    def embargo(self, value):
+        if Embargo.check_embargo_format(value):
+            self._kbart_data['embargo_info'] = value
+        else:
+            raise UnknownEmbargoFormat
 
     def embargo_pp(self):
         return Embargo.pretty_print(self.embargo)
@@ -290,6 +297,9 @@ class Embargo(object):
             embargo_dict = {}
         return embargo_dict
 
+    @staticmethod
+    def check_embargo_format(embargo):
+        return bool(Embargo.pattern.match(embargo))
 
 def _format_strings(the_string='', prefix='', suffix=''):
     """Small convenience function, allows easier logic in .format() calls"""

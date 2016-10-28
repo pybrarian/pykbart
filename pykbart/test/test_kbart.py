@@ -6,8 +6,8 @@ from __future__ import (absolute_import, division,
 
 import unittest
 
-from kbart.kbart import Kbart
-from kbart.exceptions import ProviderNotFound, UnknownEmbargoFormat, InvalidRP
+from pykbart.kbart import Kbart, Embargo, Holdings
+from pykbart.exceptions import ProviderNotFound, UnknownEmbargoFormat, InvalidRP
 
 
 # run 'python -m test.test_kbart' for test cases to properly run
@@ -47,26 +47,40 @@ class TestKbart(unittest.TestCase):
         last_key = oclc_kbart.fields[-1]
         self.assertEqual(last_key, 'ACTION')
 
-    def test_title(self):
-        self.assertEqual(self.kbart.title, 'My Journal')
-
     def test_holdings_pretty_print(self):
-        correct_holdings = 'Volume: 1, Issue: 1, 2015-01-01 - Volume: 2, Issue: 2, 2016-01-01'
-        self.assertEqual(correct_holdings, self.kbart.serial_holdings_pp())
+        correct_holdings = '2015-01-01, Vol: 1, Issue: 1 - 2016-01-01, Vol: 2, Issue: 2'
+        self.assertEqual(correct_holdings, self.kbart.holdings_pp())
 
-    def test_embargo_pretty_print(self):
-        correct_embargo = 'From 1 year(s) ago to present'
-        self.assertEqual(correct_embargo, self.kbart_embargo.embargo_pp())
 
-    def test_embargo_set(self):
-        embargoed = Kbart(self._data_with_embargo)
-        embargoed.embargo = 'P1M'
-        new_embargo = 'Up to 1 month(s) ago'
-        self.assertEqual(new_embargo, embargoed.embargo_pp())
+class TestEmbargo(unittest.TestCase):
 
+    def test_pretty_print_valid_embargo_code(self):
+        assert Embargo.pretty_print('P1M') == 'Up to 1 month(s) ago'
+
+    def test_pretty_print_with_empty_input(self):
+        assert Embargo.pretty_print('') == ''
+
+    def test_pretty_print_with_invalid_embargo_code(self):
         with self.assertRaises(UnknownEmbargoFormat):
-            embargoed.embargo = 'Z32L'  # Any string not like an embargo
+            Embargo.pretty_print('Z32L')
+
+    def test_embargo_check_for_valid_embargo_code(self):
+        assert Embargo.check_embargo_format('P1M') is True
+
+    def test_embargo_check_for_invalid_embargo_code(self):
+        assert Embargo.check_embargo_format('Z32L') is False
 
 
+class TestHoldings(unittest.TestCase):
+
+    def test_pretty_print_full_holdings_info(self):
+        assert (Holdings.pretty_print(['2015-01-01', '1', '1', '2016-01-01', '2', '2']) ==
+                '2015-01-01, Vol: 1, Issue: 1 - 2016-01-01, Vol: 2, Issue: 2')
+
+    def test_pretty_print_only_first_set_of_holdings(self):
+        assert Holdings.pretty_print(['2015-01-01', '1', '1', '', '', '']) == '2015-01-01, Vol: 1, Issue: 1 - present'
+
+    def test_pretty_print_with_no_holdings(self):
+        assert Holdings.pretty_print(['', '', '', '', '', ''])
 if __name__ == '__main__':
     unittest.main()
