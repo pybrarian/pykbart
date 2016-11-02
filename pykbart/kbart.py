@@ -88,7 +88,7 @@ class Kbart(MutableMapping):
         return len(self._kbart_data)
 
     def __iter__(self):
-        return self._kbart_data.__iter__()
+        return iter(self._kbart_data)
 
     def get_fields(self, *args):
         """Get values for the listed keys."""
@@ -112,6 +112,14 @@ class Kbart(MutableMapping):
     @title.setter
     def title(self, value):
         self._kbart_data['publication_title'] = value
+
+    @property
+    def url(self):
+        return self._kbart_data['title_url']
+
+    @url.setter
+    def url(self, value):
+        self._kbart_data['title_url'] = value
 
     @property
     def embargo(self):

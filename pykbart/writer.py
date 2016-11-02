@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division,
 
 import contextlib
 
+import six
 import unicodecsv as csv
 
 
@@ -26,7 +27,7 @@ class Writer(object):
 
     def writerow(self, kbart_record):
         """Write csv row from a Kbart record."""
-        self.writer.writerow(kbart_record._kbart_data.values())
+        self.writer.writerow(list(kbart_record.values()))
 
     def writeheader(self, kbart_record):
         self.writer.writerow(kbart_record.fields)
