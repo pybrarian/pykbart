@@ -7,12 +7,13 @@ from collections import OrderedDict, MutableMapping
 import datetime
 import re
 
+
 import six
 
 from pykbart.constants import (RP1_FIELDS, RP2_FIELDS, PROVIDER_FIELDS,
-                             EMBARGO_CODES_TO_STRINGS)
+                               EMBARGO_CODES_TO_STRINGS)
 from pykbart.exceptions import (InvalidRP, ProviderNotFound,
-                              UnknownEmbargoFormat, IncompleteDateInformation)
+                                UnknownEmbargoFormat, IncompleteDateInformation)
 
 
 @six.python_2_unicode_compatible
@@ -69,12 +70,12 @@ class Kbart(MutableMapping):
         del(self._kbart_data[key])
 
     def __repr__(self):
-        return ('{0}(data={1}, provider={2}, rp={3}, fields={4})\n'
+        return ('{0}(data={1}, provider={2}, rp={3}, fields={4})'
                 .format(self.__class__.__name__,
-                        self.data,
-                        self.provider,
+                        six.moves.reprlib.repr([str(x) for x in self.data]),
+                        str(self.provider),
                         self.rp,
-                        self.fields))
+                        six.moves.reprlib.repr(self.fields)))
 
     def __str__(self):
         output = [' -------\n']

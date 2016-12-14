@@ -10,24 +10,16 @@ from pykbart.kbart import Kbart, Embargo, Holdings
 from pykbart.exceptions import ProviderNotFound, UnknownEmbargoFormat, InvalidRP
 
 
-# run 'python -m test.test_kbart' for test cases to properly run
 class TestKbart(unittest.TestCase):
-    """Tests defining behavior of a new Kbart class."""
 
     def setUp(self):
         # Fewer fields defined than exist in an RP2 Kbart file,
         # will define the undefined fields as empty string
-        self._data_with_holdings = ('My Journal', '1111-2222', '1111-2222',
-                                    '2015-01-01', '1', '1', '2016-01-01', '2',
-                                    '2', 'http://www.example.com', '', '', '',
-                                    '', '', '', 'My Publisher', 'journal')
-        self._data_with_embargo = ('My Journal', '1111-2222', '1111-2222',
-                                   '', '', '', '', '',  '',
-                                   'http://www.example.com', '', '', 'R1Y',
-                                   '', '', '', 'My Publisher', 'journal')
-
-        self.kbart = Kbart(self._data_with_holdings)
-        self.kbart_embargo = Kbart(self._data_with_embargo)
+        self._data = ('My Journal', '1111-2222', '1111-2222',
+                      '2015-01-01', '1', '1', '2016-01-01', '2',
+                      '2', 'http://www.example.com', '', '', '',
+                      '', '', '', 'My Publisher', 'journal')
+        self.kbart = Kbart(self._data)
 
     def test_invalid_rp(self):
         with self.assertRaises(InvalidRP):
@@ -36,7 +28,7 @@ class TestKbart(unittest.TestCase):
     def test_valid_rp(self):
         rp1_kbart = Kbart(rp=1)
         last_key = rp1_kbart.fields[-1]
-        self.assertEqual(last_key, 'coverage_notes')
+        assert last_key == 'coverage_notes'
 
     def test_unsupported_provider(self):
         with self.assertRaises(ProviderNotFound):
@@ -45,12 +37,17 @@ class TestKbart(unittest.TestCase):
     def test_supported_provider(self):
         oclc_kbart = Kbart(provider='oclc')
         last_key = oclc_kbart.fields[-1]
-        self.assertEqual(last_key, 'ACTION')
+        assert last_key == 'ACTION'
 
     def test_holdings_pretty_print(self):
         correct_holdings = '2015-01-01, Vol: 1, Issue: 1 - 2016-01-01, Vol: 2, Issue: 2'
         self.assertEqual(correct_holdings, self.kbart.holdings_pp())
 
+    def test_repr_with_no_data_or_fields(self):
+        assert repr(Kbart(rp=2)) == 'Kbart(data=[], provider=None, rp=2, fields=[\'publication_title\', \'print_identifier\', \'online_identifier\', \'date_first_issue_online\', \'num_first_vol_online\', \'num_first_issue_online\', ...])'
+
+    def test_repr_with_data_no_fields(self):
+        assert repr(self.kbart) == 'Kbart(data=[\'My Journal\', \'1111-2222\', \'1111-2222\', \'2015-01-01\', \'1\', \'1\', ...], provider=None, rp=2, fields=[\'publication_title\', \'print_identifier\', \'online_identifier\', \'date_first_issue_online\', \'num_first_vol_online\', \'num_first_issue_online\', ...])'
 
 class TestEmbargo(unittest.TestCase):
 
@@ -82,5 +79,7 @@ class TestHoldings(unittest.TestCase):
 
     def test_pretty_print_with_no_holdings(self):
         assert Holdings.pretty_print(['', '', '', '', '', ''])
+
+
 if __name__ == '__main__':
     unittest.main()
