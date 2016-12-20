@@ -107,6 +107,27 @@ class Kbart(MutableMapping):
         return Holdings.pretty_print(self.holdings)
 
     @property
+    def coverage(self):
+        return Holdings.length_of_coverage(self.holdings)
+
+    def coverage_pp(self):
+        Holdings.length_of_coverage_pp(self.holdings)
+
+    def compare_coverage(self, other_kbart):
+        """
+        Compare the coverage dates for this kbart instance against another.
+
+        Args:
+            other_kbart: Another KBART instance
+
+        Returns: An int describing the coverage; positive means the current
+            holding has better coverage by that many days, negative means the
+            other KBART has better coverage, 0 is equal.
+
+        """
+        return self.coverage.days - other_kbart.coverage.days
+
+    @property
     def title(self):
         return self._kbart_data['publication_title']
 
@@ -208,27 +229,41 @@ class Holdings(object):
     @staticmethod
     def length_of_coverage(holdings):
         """
-        If we have 2 dates, use them to determine length. Else assume holdings
-        are 'to present', formulate a date and use that. If that doesn't work
-        throw an exception that should be caught within the program.
+        Calculate a timedelta object for the length of coverage.
+
+        Dates are in KBARTs as yyyy-mm-dd. Split these apart and unpack them
+        as ints to construct a date object.
 
         Returns:
-            An int expressing how many years of coverage for that title
+            A timedelta object representing days of coverage
 
         Exceptions:
-            IncompleteDateInformation: if no range can be produced
+            IncompleteDateInformation: if no range can be produced because of
+                lack of starting date. Int function will throw ValueError if
+                fed an empty string, so we know there is no date information
         """
-        first_year, last_year = holdings[0], holdings[3]
+        first, last = holdings[0].split('-'), holdings[3].split('-')
         try:
-            coverage_length = int(last_year) - int(first_year)
+            first_date = datetime.date(*map(int, first))
         except ValueError:
-            try:
-                this_year = datetime.datetime.now().year
-                coverage_length = int(this_year) - int(first_year)
-            except ValueError:
-                raise IncompleteDateInformation
+            raise IncompleteDateInformation
+
+        try:
+            last_date = datetime.date(*map(int, last))
+            coverage_length = last_date - first_date
+        except ValueError:
+            coverage_length = datetime.date.today() - first_date
 
         return coverage_length
+
+    @staticmethod
+    def length_of_coverage_pp(holdings):
+        length_string = '{0} year(s)'
+        length_of_holdings = Holdings.length_of_coverage(holdings)
+        years, days = divmod(length_of_holdings.days, 365)
+        if days:
+            length_string += ', {1} day(s)'
+        return length_string.format(years, days)
 
     @staticmethod
     def _create_holdings_string(holdings):
