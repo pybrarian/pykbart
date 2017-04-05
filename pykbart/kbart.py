@@ -4,16 +4,12 @@
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 from collections import OrderedDict, MutableMapping
-import datetime
-import re
-
 
 import six
 
-from pykbart.constants import (RP1_FIELDS, RP2_FIELDS, PROVIDER_FIELDS,
-                               EMBARGO_CODES_TO_STRINGS)
-from pykbart.exceptions import (InvalidRP, ProviderNotFound,
-                                UnknownEmbargoFormat, IncompleteDateInformation)
+from pykbart.holdings import Holdings
+from pykbart.constants import RP1_FIELDS, RP2_FIELDS, PROVIDER_FIELDS, HOLDING_FIELDS
+from pykbart.exceptions import InvalidRP, ProviderNotFound
 
 
 @six.python_2_unicode_compatible
@@ -58,6 +54,7 @@ class Kbart(MutableMapping):
         self._kbart_data = OrderedDict(six.moves.zip_longest(self.fields,
                                                              self.data,
                                                              fillvalue=''))
+        self.holdings = self._set_holdings()
 
     def __getitem__(self, key):
         """Delegate most work to the OrderedDict held by class."""
@@ -65,6 +62,8 @@ class Kbart(MutableMapping):
 
     def __setitem__(self, key, value):
         self._kbart_data[key] = value
+        if key in HOLDING_FIELDS:
+            self.holdings = self._set_holdings()
 
     def __delitem__(self, key):
         del(self._kbart_data[key])
@@ -99,19 +98,10 @@ class Kbart(MutableMapping):
         return [self._kbart_data[x] for x in args
                 if x in self._kbart_data]
 
+    # TODO: make coverage_length_pp()
     @property
-    def holdings(self):
-        return list(self._kbart_data.values())[3:9]
-
-    def holdings_pp(self):
-        return Holdings.pretty_print(self.holdings)
-
-    @property
-    def coverage(self):
-        return Holdings.length_of_coverage(self.holdings)
-
-    def coverage_pp(self):
-        Holdings.length_of_coverage_pp(self.holdings)
+    def coverage_length(self):
+        return self.holdings.coverage_length
 
     def compare_coverage(self, other_kbart):
         """
@@ -125,7 +115,7 @@ class Kbart(MutableMapping):
             other KBART has better coverage, 0 is equal.
 
         """
-        return self.coverage.days - other_kbart.coverage.days
+        return self.coverage_length.days - other_kbart.coverage_length.days
 
     @property
     def title(self):
@@ -149,13 +139,8 @@ class Kbart(MutableMapping):
 
     @embargo.setter
     def embargo(self, value):
-        if Embargo.check_embargo_format(value):
-            self._kbart_data['embargo_info'] = value
-        else:
-            raise UnknownEmbargoFormat
-
-    def embargo_pp(self):
-        return Embargo.pretty_print(self.embargo)
+        self._kbart_data['embargo_info'] = value
+        self.holdings = self._set_holdings()
 
     @property
     def print_id(self):
@@ -193,157 +178,14 @@ class Kbart(MutableMapping):
                 fields.extend(PROVIDER_FIELDS[self.provider])
             except KeyError:
                 raise ProviderNotFound
-
         return fields
 
+    def _holdings_fields(self):
+        return list(self._kbart_data.values())[3:9]
 
-class Holdings(object):
-    """
-    Essentially just a namespace class for holdings logic so the class meant
-    to represent a KBART record doesn't also need to know how to think about
-    holdings data and can delegate instead.
-    """
-    @staticmethod
-    def pretty_print(holdings):
-        """
-        Make holdings information more readable to a human.
-
-        Args:
-            holdings: Iterable of the 6 KBART holdings fields.
-                Slice [:3] are the first holding year, vol, issue
-                Slice [3:] are the last year, vol, issue
-
-        Returns:
-            String representing the holdings or a message that no holdings
-            exist.
-        """
-        if any(holdings):
-            first_holding = Holdings._create_holdings_string(holdings[:3])
-            last_holding = Holdings._create_holdings_string(holdings[3:])
-            if not last_holding:  # KBART logic, no last holding = to present
-                last_holding = 'present'
-            return '{0} - {1}'.format(first_holding, last_holding)
-        else:
-            return 'No holdings present'
-
-    @staticmethod
-    def length_of_coverage(holdings):
-        """
-        Calculate a timedelta object for the length of coverage.
-
-        Dates are in KBARTs as yyyy-mm-dd. Split these apart and unpack them
-        as ints to construct a date object.
-
-        Returns:
-            A timedelta object representing days of coverage
-
-        Exceptions:
-            IncompleteDateInformation: if no range can be produced because of
-                lack of starting date. Int function will throw ValueError if
-                fed an empty string, so we know there is no date information
-        """
-        first, last = holdings[0].split('-'), holdings[3].split('-')
-        try:
-            first_date = datetime.date(*map(int, first))
-        except ValueError:
-            raise IncompleteDateInformation
-
-        try:
-            last_date = datetime.date(*map(int, last))
-            coverage_length = last_date - first_date
-        except ValueError:
-            coverage_length = datetime.date.today() - first_date
-
-        return coverage_length
-
-    @staticmethod
-    def length_of_coverage_pp(holdings):
-        length_string = '{0} year(s)'
-        length_of_holdings = Holdings.length_of_coverage(holdings)
-        years, days = divmod(length_of_holdings.days, 365)
-        if days:
-            length_string += ', {1} day(s)'
-        return length_string.format(years, days)
-
-    @staticmethod
-    def _create_holdings_string(holdings):
-        """
-        Format a section of KBART holdings into a human-readable string.
-
-        Args:
-            holdings: 3 element list; [date, vol, issue] following KBART order
-
-        Returns:
-            Human readable string of the holding period
-
-        """
-        holdings[1] = _format_strings(holdings[1], prefix='Vol: ')
-        holdings[2] = _format_strings(holdings[2], prefix='Issue: ')
-        return ', '.join(x for x in holdings if x)
-
-
-class Embargo(object):
-    """
-    Essentially just a namespace class for embargo logic so the class meant
-    to represent a KBART record doesn't also need to know how to think about
-    embargo data and regexes etc. and can delegate instead.
-    """
-
-    # using named groups, so ?P<type> etc. are group names rather than
-    # matching logic
-    pattern = re.compile('(?P<type>R|P)(?P<length>\d+)(?P<unit>D|M|Y)')
-
-    @staticmethod
-    def pretty_print(embargo):
-        """
-        Change an embargo code, i.e. R1Y, to a human-readable string, i.e.
-        'Up to 1 year ago'.
-
-        Args:
-            embargo: A KBART embargo string, i.e. R1Y
-        Returns:
-            A string stating the embargo information.
-            KeyError is thrown if no embargo is passed and _embargo_as_dict
-            returns a blank object, and in that case return empty string.
-        """
-        embargo_parts = Embargo._embargo_as_dict(embargo)
-        try:
-            type_of_embargo = EMBARGO_CODES_TO_STRINGS[embargo_parts['type']]
-            units = EMBARGO_CODES_TO_STRINGS[embargo_parts['unit']]
-            return type_of_embargo.format(embargo_parts['length'], units)
-        except KeyError:
-            return ''
-
-    @staticmethod
-    def _embargo_as_dict(embargo):
-        """
-        Take an embargo, break it up with the class level regex, and make
-        it into a regular dict
-        Args:
-            embargo: A KBART embargo string, i.e. R1Y
-
-        Returns:
-            A dict containing the embargo sections, or an empty dict if no
-            embargo. Empty dict is essentially Null Object pattern to avoid
-            continuous error handling or existence checks when reading a
-            KBART file.
-
-        Raises:
-            UnknownEmbargoFormat: If an embargo is passed but can't be parsed
-        """
-        if embargo:
-            try:
-                embargo_parts = Embargo.pattern.match(embargo)
-                embargo_dict = embargo_parts.groupdict()
-            except AttributeError:
-                raise UnknownEmbargoFormat
-        else:
-            embargo_dict = {}
-        return embargo_dict
-
-    @staticmethod
-    def check_embargo_format(embargo):
-        return bool(Embargo.pattern.match(embargo))
+    def _set_holdings(self):
+        return Holdings(self._holdings_fields(),
+                        self._kbart_data['embargo_info'])
 
 def _format_strings(the_string='', prefix='', suffix=''):
     """Small convenience function, allows easier logic in .format() calls"""

@@ -16,6 +16,11 @@ RP2_FIELDS = (
     'access_type'
 )
 
+HOLDING_FIELDS = {'date_first_issue_online', 'num_first_vol_online',
+                  'num_first_issue_online', 'date_last_issue_online',
+                  'num_last_vol_online', 'num_last_issue_online',
+                  'embargo_info'}
+
 PROVIDER_FIELDS = {
     'oclc': (
         'publisher_name', 'location', 'title_notes',
@@ -30,8 +35,4 @@ PROVIDER_FIELDS = {
     )
 }
 
-EMBARGO_CODES_TO_STRINGS = {
-    'D': 'day(s)', 'M': 'month(s)', 'Y': 'year(s)',
-    'R': 'From {} {} ago to present',
-    'P': 'Up to {} {} ago'
-}
+
