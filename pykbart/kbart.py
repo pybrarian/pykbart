@@ -98,7 +98,6 @@ class Kbart(MutableMapping):
         return [self._kbart_data[x] for x in args
                 if x in self._kbart_data]
 
-    # TODO: make coverage_length_pp()
     @property
     def coverage_length(self):
         return self.holdings.coverage_length
@@ -132,6 +131,28 @@ class Kbart(MutableMapping):
     @url.setter
     def url(self, value):
         self._kbart_data['title_url'] = value
+
+    @property
+    def start_date(self):
+        return self.holdings.begins()
+
+    @start_date.setter
+    def start_date(self, value):
+        self._kbart_data['date_first_issue_online'] = value
+        self.holdings = self._set_holdings()
+
+    @property
+    def end_date(self):
+        return self.holdings.ends()
+
+    @end_date.setter
+    def end_date(self, value):
+        self._kbart_data['date_last_issue_online'] = value
+        self.holdings = self._set_holdings()
+
+    @property
+    def coverage(self):
+        return self.holdings.pretty_print()
 
     @property
     def embargo(self):
@@ -186,6 +207,7 @@ class Kbart(MutableMapping):
     def _set_holdings(self):
         return Holdings(self._holdings_fields(),
                         self._kbart_data['embargo_info'])
+
 
 def _format_strings(the_string='', prefix='', suffix=''):
     """Small convenience function, allows easier logic in .format() calls"""

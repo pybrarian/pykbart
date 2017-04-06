@@ -3,11 +3,12 @@ import re
 
 from pykbart.exceptions import UnknownEmbargoFormat, IncompleteDateInformation
 
+embargo_regex = re.compile('(?P<type>[RP])(?P<length>\d+)(?P<unit>[DMY])')
+TODAY = datetime.date.today()
+DATE_FORMAT = '%Y-%m-%d'
+
 
 class Holdings(object):
-    embargo_regex = re.compile('(?P<type>[RP])(?P<length>\d+)(?P<unit>[DMY])')
-    TODAY = datetime.date.today()
-    DATE_FORMAT = '%Y-%m-%d'
 
     def __init__(self, holding_dates, embargo):
         self.holding_dates = holding_dates
@@ -16,18 +17,14 @@ class Holdings(object):
         self.begins = None
         self.ends = None
 
-    def pretty_print(self):
-        if self.coverage_ends == Holdings.TODAY:
-            ends = 'Present'
-        else:
-            ends = self.coverage_ends
+    def pretty_print(self, date_format=DATE_FORMAT):
         begin_vol, begin_issue = self.holding_dates[1], self.holding_dates[2]
         end_vol, end_issue = self.holding_dates[4], self.holding_dates[5]
         return '{0}{1}{2} - {3}{4}{5}'.format(
-            self.coverage_begins,
+            self.begins(date_format),
             self._volume_pp(begin_vol),
             self._issue_pp(begin_issue),
-            ends,
+            self.ends(date_format),
             self._volume_pp(end_vol),
             self._issue_pp(end_issue)
         )
@@ -38,11 +35,21 @@ class Holdings(object):
     def _issue_pp(self, issue):
         return ', Issue: ' + issue if issue else ''
 
+    def begins(self, date_format):
+        return (self.holding_dates[0] if self.holding_dates[0]
+                else self.coverage_begins.strftime(date_format))
+
+    def ends(self, date_format):
+        if self.holding_dates[3]:
+            return self.holding_dates[3]
+        elif self.coverage_ends == TODAY:
+            return 'Present'
+        else:
+            return self.coverage_ends.strftime(date_format)
+
     @property
     def coverage_length(self):
-        begin = self._parse_date_string(self.coverage_begins)
-        end = self._parse_date_string(self.coverage_ends)
-        return end - begin
+        return self.coverage_ends - self.coverage_begins
 
     @property
     def coverage_begins(self):
@@ -61,9 +68,9 @@ class Holdings(object):
         if self.begins:
             begins = self.begins
         elif self.holding_dates[0]:
-            begins = self.holding_dates[0]
+            begins = self._parse_date_string(self.holding_dates[0])
         elif self.embargo.get('type') == 'R':
-            begins = self._embargo_as_date().strftime(Holdings.DATE_FORMAT)
+            begins = self._embargo_as_date()
         else:
             raise IncompleteDateInformation
         self.begins = begins
@@ -85,13 +92,13 @@ class Holdings(object):
         if self.ends:
             ends = self.ends
         elif self.holding_dates[3]:
-            ends = self.holding_dates[3]
-        elif self.embargo.get('type') == 'R' or self.holding_dates[3]:
-            ends = Holdings.TODAY.strftime(Holdings.DATE_FORMAT)
+            ends = self._parse_date_string(self.holding_dates[3])
+        elif self.embargo.get('type') == 'R':
+            ends = TODAY
         elif self.embargo.get('type') == 'P':
-            ends = self._embargo_as_date().strftime(Holdings.DATE_FORMAT)
+            ends = self._embargo_as_date()
         else:
-            ends = Holdings.TODAY.strftime(Holdings.DATE_FORMAT)
+            ends = TODAY
         self.ends = ends
         return ends
 
@@ -111,7 +118,7 @@ class Holdings(object):
         """
         if embargo:
             try:
-                embargo_parts = Holdings.embargo_regex.match(embargo)
+                embargo_parts = embargo_regex.match(embargo)
                 embargo_dict = embargo_parts.groupdict()
             except AttributeError:
                 raise UnknownEmbargoFormat
@@ -137,7 +144,7 @@ class Holdings(object):
             length *= 30
         elif unit == 'Y':
             length *= 365
-        return Holdings.TODAY - datetime.timedelta(length)
+        return TODAY - datetime.timedelta(length)
 
     def _parse_date_string(self, date):
         """
