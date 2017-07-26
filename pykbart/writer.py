@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Class and context manager for writing Kbart class to csv file."""
+"""Class and context manager for writing KbartRecord class to csv file."""
 # coding: utf-8
 
 from __future__ import (absolute_import, division,
@@ -12,7 +12,7 @@ import unicodecsv as csv
 
 
 class Writer(object):
-    """Write a Kbart class to a csv file."""
+    """Write a KbartRecord class to a csv file."""
 
     def __init__(self, file_handle, delimiter='\t'):
         """
@@ -26,7 +26,7 @@ class Writer(object):
                                  encoding='utf-8')
 
     def writerow(self, kbart_record):
-        """Write csv row from a Kbart record."""
+        """Write csv row from a KbartRecord record."""
         self.writer.writerow(list(kbart_record.values()))
 
     def writeheader(self, kbart_record):
@@ -36,7 +36,7 @@ class Writer(object):
 @contextlib.contextmanager
 def KbartWriter(file_path, delimiter='\t'):
     """
-    Context manager for writing a Kbart. Written in camel-case to maintain
+    Context manager for writing a KbartRecord. Written in camel-case to maintain
     similarity to PyMARC.
 
     Args:

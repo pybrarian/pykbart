@@ -6,7 +6,7 @@ import contextlib
 
 import six
 
-from pykbart.kbart import Kbart
+from pykbart.kbartrecord import KbartRecord
 
 import unicodecsv as csv
 
@@ -18,7 +18,7 @@ class Reader(six.Iterator):
         self.fields = list(six.next(self.reader))
 
     def __next__(self):
-        return Kbart(six.next(self.reader), fields=self.fields)
+        return KbartRecord(six.next(self.reader), fields=self.fields)
 
     def __iter__(self):
         return self

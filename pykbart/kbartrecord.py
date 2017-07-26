@@ -13,8 +13,8 @@ from pykbart.exceptions import InvalidRP, ProviderNotFound
 
 
 @six.python_2_unicode_compatible
-class Kbart(MutableMapping):
-    """Kbart representation without having to remember field positions."""
+class KbartRecord(MutableMapping):
+    """KbartRecord representation without having to remember field positions."""
 
     def __init__(self,
                  data=None,
@@ -29,7 +29,7 @@ class Kbart(MutableMapping):
 
         Args:
             data: Values for kbart fields, usually from csv
-            provider: String of a publisher/provider's name. Kbart recommended
+            provider: String of a publisher/provider's name. KbartRecord recommended
                 practice allows publishers to define their own special fields
                 to be tacked at the end. Some providers fields are provided. If
                 not, just attach them to or pass them as 'fields'
