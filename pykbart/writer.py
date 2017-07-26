@@ -11,6 +11,7 @@ import six
 import unicodecsv as csv
 
 
+# TODO: make a better way to write the header when working from a reader object
 class Writer(object):
     """Write a KbartRecord class to a csv file."""
 
