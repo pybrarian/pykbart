@@ -9,7 +9,7 @@ import unittest
 
 import pytest
 
-from pykbart.kbartrecord import KbartRecord, Holdings
+from pykbart.kbartrecord import KbartRecord
 from pykbart.exceptions import (ProviderNotFound, UnknownEmbargoFormat,
                                 InvalidRP, IncompleteDateInformation)
 
@@ -45,7 +45,7 @@ class TestKbart(unittest.TestCase):
 
     def test_holdings_pretty_print(self):
         correct_holdings = '2015-01-01, Vol: 1, Issue: 1 - 2016-01-01, Vol: 2, Issue: 2'
-        assert correct_holdings == self.kbart.holdings.pretty_print()
+        assert correct_holdings == self.kbart.coverage
 
     def test_repr_with_no_data_or_fields(self):
         assert repr(KbartRecord(rp=2)) == 'KbartRecord(data=[], provider=None, rp=2, fields=[\'publication_title\', \'print_identifier\', \'online_identifier\', \'date_first_issue_online\', \'num_first_vol_online\', \'num_first_issue_online\', ...])'
@@ -73,6 +73,14 @@ class TestKbart(unittest.TestCase):
                 '', '', '', 'My Publisher', 'journal')
         assert KbartRecord(data).coverage_length.days == 180
 
+    def test_incorrect_embargo_format(self):
+        with pytest.raises(UnknownEmbargoFormat):
+            self.kbart.embargo = 'L3Y'
+
+    def test_correct_embargo_format(self):
+        new_kbart = KbartRecord(self._data)
+        new_kbart.embargo = 'R3Y'
+        assert new_kbart.embargo == 'R3Y'
 
 if __name__ == '__main__':
     unittest.main()

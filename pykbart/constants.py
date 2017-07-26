@@ -16,10 +16,6 @@ RP2_FIELDS = (
     'access_type'
 )
 
-HOLDING_FIELDS = {'date_first_issue_online', 'num_first_vol_online',
-                  'num_first_issue_online', 'date_last_issue_online',
-                  'num_last_vol_online', 'num_last_issue_online',
-                  'embargo_info'}
 
 PROVIDER_FIELDS = {
     'oclc': (
