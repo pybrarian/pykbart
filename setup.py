@@ -3,7 +3,7 @@ import setuptools
 
 setup(
     name='pykbart',
-    version='0.1.0',
+    version='0.1.0a1',
     packages=['pykbart'],
     url='https://github.com/chill17/pykbart',
     license='MIT',
